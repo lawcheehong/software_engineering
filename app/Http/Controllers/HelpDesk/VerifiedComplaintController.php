@@ -29,9 +29,9 @@ class VerifiedComplaintController extends Controller
 
             foreach ($array_search as $s) {
                 $verified_complaints = $verified_complaints->where(function (Builder $query) use ($s) {
-                    return $query->where('common_title', 'like', '%'.$s.'%')
-                        ->orWhere('description', 'like', '%'.$s.'%')
-                        ->orWhere('finalize_remark', 'like', '%'.$s.'%');
+                    return $query->where('common_title', 'like', '%' . $s . '%')
+                        ->orWhere('description', 'like', '%' . $s . '%')
+                        ->orWhere('finalize_remark', 'like', '%' . $s . '%');
                 });
             }
         }
@@ -150,8 +150,7 @@ class VerifiedComplaintController extends Controller
                 'complaint_action_id' => 1,
             ]));
             $verified_complaint->complaints()->saveMany($complaints);
-        }
-        else {
+        } else {
             $status_id = 6;
             $complaints_query->update(['status_id' => $status_id]);
             $verified_complaint = $verified_complaint->create([
@@ -249,9 +248,11 @@ class VerifiedComplaintController extends Controller
                 $verified_complaint->status_id = 2;
                 $verified_complaint->complaint_action_id = 1;
                 $verified_complaint->save();
+                $verified_complaint->complaints()->update([
+                    'status_id' => 2,
+                ]);
             }
-        }
-        else if (in_array($verified_complaint->complaint_action_id, [4,5])) {
+        } else if (in_array($verified_complaint->complaint_action_id, [4, 5])) {
             $request->validate([
                 'action' => [
                     'required',
@@ -295,11 +296,26 @@ class VerifiedComplaintController extends Controller
                 $verified_complaint->status_id = 2;
                 $verified_complaint->complaint_action_id = 1;
                 $verified_complaint->save();
-            }
-            else {
+                $verified_complaint->complaints()->update([
+                    'status_id' => 2,
+                ]);
+            } else {
+                if ($is_approve) {
+                    $verified_complaint->complaint_loggings()->create([
+                        'user_id' => Auth::id(),
+                        'assigned_to_department_id' => $verified_complaint->assigned_to_department_id,
+                        'remark' => $request->remark,
+                        'status_id' => 6,
+                        'complaint_action_id' => 9,
+                    ]);
+                    $verified_complaint->finalize_remark = $request->remark;
+                }
                 $verified_complaint->status_id = $is_approve ? 6 : 5;
                 $verified_complaint->complaint_action_id = $is_approve ? 9 : 1;
                 $verified_complaint->save();
+                $verified_complaint->complaints()->update([
+                    'status_id' => $is_approve ? 6 : 5,
+                ]);
             }
         }
         return redirect()->route('helpdesk.verified_complaints.show', ['verified_complaint' => $verified_complaint->id]);

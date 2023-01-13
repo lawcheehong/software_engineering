@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
 // use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use SebastianBergmann\CodeCoverage\Report\Xml\Totals;
+
 // use Illuminate\Support\Facades\File;
 
 class UserController extends Controller
@@ -164,7 +166,7 @@ class UserController extends Controller
 
         if ($request->hasFile('file') && $request->file('file')->isValid()) {
             if ($update_user->avatar_file_path != null && $update_user->avatar_file_name != null) {
-                $this->deleteFile($update_user->avatar_file_path.$update_user->avatar_file_name);
+                $this->deleteFile($update_user->avatar_file_path . $update_user->avatar_file_name);
             }
 
             $this->createFolder($this->getAvatarPath());
@@ -197,16 +199,21 @@ class UserController extends Controller
     {
         $delete_user = $user;
         $name = $delete_user->email;
+
+        if ($user->id == 1) {
+            return redirect()->route('users.index')->with('action_message', 'Error! Cannot delete this user: ' . $name . ' !');
+        }
+
         $delete_user->user_roles()->delete();
         $delete_user->complaints()->update(['user_id' => null]);
         $delete_user->complaint_loggings()->update(['user_id' => null]);
 
         if ($delete_user->avatar_file_path != null && $delete_user->avatar_file_name != null) {
-            $this->deleteFile($delete_user->avatar_file_path.$delete_user->avatar_file_name);
+            $this->deleteFile($delete_user->avatar_file_path . $delete_user->avatar_file_name);
         }
 
         $delete_user->delete();
 
-        return redirect()->route('users.index')->with('action_message', 'Successfully to delete user: '.$name.' !');
+        return redirect()->route('users.index')->with('action_message', 'Successfully to delete user: ' . $name . ' !');
     }
 }
